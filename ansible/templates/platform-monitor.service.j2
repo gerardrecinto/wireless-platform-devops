@@ -1,0 +1,17 @@
+[Unit]
+Description=Wireless platform monitor
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User={{ platform_user }}
+WorkingDirectory={{ platform_home }}
+ExecStart=/usr/bin/python3 {{ platform_home }}/monitor/sysperf.py --interval 5 --json
+Restart=always
+RestartSec=5
+StandardOutput=append:/var/log/platform/sysperf.jsonl
+StandardError=append:/var/log/platform/sysperf.err
+
+[Install]
+WantedBy=multi-user.target

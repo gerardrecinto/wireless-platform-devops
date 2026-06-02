@@ -1,129 +1,165 @@
 # wireless-platform-devops
 
-Linux DevOps toolkit for next-generation wireless prototype systems. Covers
-kernel image packaging, container orchestration, provisioning automation,
-and real-time performance diagnostics for PCIe-attached radio hardware.
+<p align="center">
+  <img src="docs/assets/logo.svg" alt="wireless-platform-devops logo" width="160">
+</p>
 
-Built by Gerard Recinto — Senior DevOps Engineer with 8 years at Qualcomm.
-Maintained 475+ Jenkins pipelines across 10 product lines. Reduced CI build
-time from 6h59m to 15min. Cut S3 costs $26.28M/year via lifecycle automation.
+Linux DevOps toolkit for wireless platform prototypes. It ties together the work
+that usually gets scattered across lab nodes: kernel/RPM packaging, PCIe and NUMA
+diagnostics, Kubernetes manifests, Ansible provisioning, and Jenkins release flow.
 
----
+Built as a public, safe showcase of the kind of platform work I have done in
+production: 475+ Jenkins pipelines, CI reduced from 6h59m to about 15min, and
+large-scale lifecycle automation work that removed $26.28M/year of waste.
 
-## What's Here
+![terminal demo](docs/assets/demo.gif)
 
-| Path | Purpose | JD Requirement |
-|---|---|---|
-| `monitor/sysperf.py` | Multi-core CPU + NUMA monitor | Performance optimization, multi-core/multi-processor |
-| `monitor/netdiag.py` | Bridge/route/PCIe NIC diagnostics | Networking concepts, bridging, routing |
-| `packages/build_rpm.py` | RPM spec generation + build | Linux kernel imaging, RPM/YUM workflows |
-| `containers/Dockerfile.dev` | Kernel build environment | Docker containerized environments |
-| `containers/Dockerfile.rt` | Minimal runtime image | Docker containerized environments |
-| `containers/k8s/` | Kubernetes deployment manifests | Kubernetes container orchestration |
-| `ansible/provision.yml` | Full node provisioning playbook | Ansible provisioning + config management |
-| `ansible/roles/linux-base/` | Kernel params, THP, sysctl tuning | Linux internals, OS build/deployment |
-| `ansible/roles/container-runtime/` | Docker + K8s install | Infrastructure provisioning |
-| `ci/Jenkinsfile` | Multi-stage Jenkins pipeline | CI/CD pipelines, Jenkins |
-| `scripts/set_irq_affinity.sh` | PCIe NIC IRQ CPU pinning | Linux internals, PCIe, networking |
+## Why I Built This
 
----
+Wireless prototype systems are usually messy in a very specific way. The app is
+only one part of the stack. The real problems show up around CPU isolation, IRQ
+affinity, bridge settings, kernel image drift, container runtime setup, and CI
+pipelines that treat lab machines like regular cloud nodes.
+
+This repo packages those concerns into a small, readable toolkit:
+
+| Area | What it shows |
+|---|---|
+| Linux performance | Per-core utilization, NUMA visibility, IRQ imbalance checks |
+| Networking | Bridge, route, PCIe NIC, MTU, and interface error diagnostics |
+| Packaging | RPM spec generation for kernel images and PCIe drivers |
+| Containers | Dev/runtime Dockerfiles and Kubernetes deployment manifests |
+| Provisioning | Ansible roles for base OS and container runtime setup |
+| CI/CD | Jenkins pipeline for lint, tests, RPMs, images, and deployment |
 
 ## Quick Start
 
 ```bash
-# Monitor per-core CPU utilization + NUMA topology
-python3 monitor/sysperf.py --interval 2 --imbalance-threshold 25
+python3 -m venv .venv
+. .venv/bin/activate
+pip install -e ".[dev]"
 
-# JSON output for Prometheus scraping
-python3 monitor/sysperf.py --interval 5 --json | jq .
+pytest tests/ -v
+```
 
-# Network diagnostics — bridges, routes, PCIe NIC counters
-python3 monitor/netdiag.py
-python3 monitor/netdiag.py --watch 10
+Useful commands:
+
+```bash
+# Monitor per-core CPU utilization and NUMA topology
+sysperf --interval 2 --imbalance-threshold 25
+
+# JSON output for scraping or automation
+sysperf --interval 5 --json | jq .
+
+# Network diagnostics: bridges, routes, PCIe NIC counters
+netdiag
+netdiag --watch 10
 
 # Generate kernel image RPM spec
-python3 packages/build_rpm.py kernel-spec --kernel-version 6.1.80-rt27
+rpm-tooling kernel-spec --kernel-version 6.1.80-rt27
 
 # Generate PCIe driver RPM spec
-python3 packages/build_rpm.py driver-spec \
-    --driver-name ixgbe \
-    --version 5.20.3 \
-    --kernel-version 6.1.80-rt27
+rpm-tooling driver-spec \
+  --driver-name ixgbe \
+  --version 5.20.3 \
+  --kernel-version 6.1.80-rt27
 
-# Provision lab nodes (requires SSH + sudo)
+# Provision lab nodes
 ansible-playbook -i ansible/inventory/hosts.ini ansible/provision.yml
 
 # Pin PCIe NIC IRQs to isolated CPUs 4-7
 ISOLATED_CPUS=4,5,6,7 sudo bash scripts/set_irq_affinity.sh
 ```
 
----
-
 ## Architecture
 
-```
-Prototype Node (bare metal)
-├── Linux kernel 6.1.x-rt (RPM-packaged, managed via YUM)
-│   ├── PCIe NIC: 10/25 GbE, IRQs pinned to isolated CPUs 4-7
-│   └── NUMA: 2 nodes, CPU affinity manual (auto-balancing disabled)
-├── Docker (overlay2, syslog → Grafana Loki)
-│   ├── platform-monitor:latest  (sysperf + netdiag)
-│   └── prototype-app:*          (wireless stack components)
-└── Kubernetes 1.29 (single-node or 3-node cluster)
-    └── Namespace: wireless-prototype
-        └── Deployment: platform-monitor (hostNetwork=true)
+```text
+Prototype node
+├── Linux kernel 6.1.x-rt
+│   ├── PCIe NIC: 10/25 GbE
+│   ├── IRQs pinned to isolated CPUs
+│   └── NUMA-aware scheduling and memory checks
+├── Docker
+│   ├── platform-monitor: sysperf + netdiag
+│   └── prototype runtime components
+└── Kubernetes 1.29
+    └── wireless-prototype namespace
+        └── platform-monitor with hostNetwork=true
 
-Build / CI
-└── Jenkins (Kubernetes agent pods)
-    ├── lint → unit test → build RPMs → build containers → push → deploy
-    └── Artifacts: Artifactory (RPMs + container images)
+Build and release
+└── Jenkins
+    ├── lint
+    ├── unit test
+    ├── build RPM specs
+    ├── build containers
+    └── deploy manifests
 
 Provisioning
-└── Ansible (provision.yml)
-    ├── Role: linux-base  (kernel params, THP, sysctl, tuned)
-    └── Role: container-runtime  (Docker CE, K8s, bridge sysctl)
+└── Ansible
+    ├── linux-base: kernel params, THP, sysctl, tuned
+    └── container-runtime: Docker, Kubernetes, bridge sysctl
 ```
 
----
+## Design Tradeoffs
 
-## Performance Context
+This is intentionally a toolkit, not a full platform product.
 
-These tools grew from real incidents on prototype systems:
+| Choice | Why | Tradeoff |
+|---|---|---|
+| Read `/proc` and `/sys` directly | Works on locked-down Linux hosts without extra agents | Linux-specific by design |
+| Generate RPM specs instead of bundling RPM artifacts | Keeps the repo public-safe and easy to inspect | Real RPM builds still need a RHEL-like builder |
+| Keep Kubernetes manifests small | Shows the deployment shape without hiding details behind Helm | Less reusable than a packaged chart |
+| Use Ansible for host setup | Clear fit for lab and bare-metal provisioning | Not as dynamic as image-based node replacement |
+| Model 20M DAU as a capacity target | Forces the design to think about noisy nodes, autoscaling, artifact rollout, and failure isolation | This repo is not claiming a verified 20M DAU load test |
 
-- **CPU imbalance**: 4-core spike detected via `sysperf.py` after PCIe interrupt
-  storm following firmware reload — IRQ affinity (`set_irq_affinity.sh`)
-  distributed load, dropped latency from 18ms P99 to 2ms.
-- **Bridge misconfiguration**: `netdiag.py` surfaced missing `bridge-nf-call-iptables`
-  sysctl after k8s pod-to-pod traffic was dropped silently.
-- **RPM drift**: `build_rpm.py kernel-spec` standardized kernel image packaging
-  across 3 lab environments, eliminating divergent manual installs.
+For a 20M DAU product target, I would keep this layer focused on repeatable node
+state and fast rollback. The app layer can scale horizontally, but the platform
+still has to answer basic questions: which kernel is running, which driver was
+packaged, which CPUs are isolated, which IRQs moved, and whether the deploy path
+can roll forward or back without a manual lab scramble.
 
----
+## Package And Release Story
+
+The release path is deliberately boring:
+
+1. Jenkins runs lint and unit tests.
+2. RPM specs are generated for kernel and driver packages.
+3. Container images are built for diagnostics and runtime components.
+4. Kubernetes manifests are applied to the prototype namespace.
+5. Ansible remains the source of truth for host-level setup.
+
+See [docs/release.md](docs/release.md) for the release checklist and package
+layout.
+
+## Validation
+
+Verified locally:
+
+```bash
+.venv/bin/python -m pytest tests/ -v
+# 32 passed
+```
+
+The repo needs `psutil` for `monitor/sysperf.py`. Running tests with a Python
+environment that does not have `psutil` installed will fail during collection,
+which is expected for this version.
 
 ## Requirements
 
-```
+```text
 Python 3.9+
 psutil >= 5.9
+pytest
 
-# For RPM builds:
-rpmbuild (rpm-build package)
+# For RPM builds
+rpmbuild
 createrepo_c
 
-# For Ansible:
+# For provisioning
 ansible >= 2.14
-RHEL 9 / CentOS Stream 9 targets
+RHEL 9 or CentOS Stream 9 targets
 
-# For containers:
+# For containers
 Docker 24+
 Kubernetes 1.29+
-```
-
----
-
-## Tests
-
-```bash
-pip install pytest psutil
-pytest tests/ -v
 ```

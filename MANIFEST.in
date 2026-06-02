@@ -1,0 +1,7 @@
+include README.md
+recursive-include ansible *
+recursive-include ci *
+recursive-include containers *
+recursive-include docs *
+recursive-include scripts *
+global-exclude __pycache__ *.py[cod] .DS_Store

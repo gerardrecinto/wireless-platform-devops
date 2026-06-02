@@ -1,0 +1,56 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wireless-platform-devops"
+version = "0.1.0"
+description = "Linux DevOps toolkit for wireless prototype platform diagnostics and RPM workflows."
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [
+  { name = "Gerard Recinto" }
+]
+dependencies = [
+  "psutil>=5.9"
+]
+keywords = [
+  "devops",
+  "linux",
+  "rpm",
+  "network-diagnostics",
+  "performance-monitoring",
+  "wireless-platforms"
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: System :: Monitoring",
+  "Topic :: System :: Networking",
+  "Topic :: System :: Software Distribution"
+]
+
+[project.urls]
+Homepage = "https://github.com/gerardrecinto/wireless-platform-devops"
+Repository = "https://github.com/gerardrecinto/wireless-platform-devops"
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8"
+]
+
+[project.scripts]
+sysperf = "monitor.sysperf:main"
+netdiag = "monitor.netdiag:main"
+rpm-tooling = "packages.build_rpm:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["monitor", "packages"]

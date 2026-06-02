@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">wireless-platform-devops logo</title>
+  <desc id="desc">A clean signal and platform mark for wireless infrastructure tooling.</desc>
+  <rect width="512" height="512" rx="96" fill="#111827"/>
+  <circle cx="256" cy="260" r="36" fill="#f8fafc"/>
+  <path d="M167 258a89 89 0 0 1 178 0" fill="none" stroke="#38bdf8" stroke-width="28" stroke-linecap="round"/>
+  <path d="M111 258a145 145 0 0 1 290 0" fill="none" stroke="#22c55e" stroke-width="24" stroke-linecap="round"/>
+  <path d="M70 258a186 186 0 0 1 372 0" fill="none" stroke="#f59e0b" stroke-width="20" stroke-linecap="round"/>
+  <path d="M138 346h236" stroke="#f8fafc" stroke-width="26" stroke-linecap="round"/>
+  <path d="M180 392h152" stroke="#94a3b8" stroke-width="20" stroke-linecap="round"/>
+  <circle cx="138" cy="346" r="16" fill="#38bdf8"/>
+  <circle cx="256" cy="346" r="16" fill="#22c55e"/>
+  <circle cx="374" cy="346" r="16" fill="#f59e0b"/>
+</svg>
