@@ -1,0 +1,122 @@
+---
+# Full provisioning playbook for wireless prototype Linux nodes.
+# Run order: linux-base -> container-runtime -> platform-tools
+# Target: RHEL 9 / CentOS Stream 9 bare-metal nodes.
+#
+# Usage:
+#   ansible-playbook -i inventory/hosts.ini provision.yml
+#   ansible-playbook -i inventory/hosts.ini provision.yml --tags container-runtime
+#   ansible-playbook -i inventory/hosts.ini provision.yml --limit lab-node-01
+
+- name: Provision wireless prototype platform nodes
+  hosts: prototype_nodes
+  become: true
+  gather_facts: true
+
+  vars:
+    kernel_version: "6.1.80-rt27"
+    docker_ce_version: "24.0.7"
+    k8s_version: "1.29"
+    platform_user: "devops"
+    platform_home: "/opt/platform"
+    cpu_governor: "performance"
+    numa_balancing: "0"   # disable auto NUMA balancing for deterministic affinity
+
+  pre_tasks:
+    - name: Verify minimum kernel version
+      assert:
+        that: ansible_kernel is version("5.15", ">=")
+        msg: "Kernel >= 5.15 required. Found: {{ ansible_kernel }}"
+
+    - name: Check architecture
+      assert:
+        that: ansible_architecture == "x86_64"
+        msg: "x86_64 only. Found: {{ ansible_architecture }}"
+
+  roles:
+    - role: linux-base
+      tags: [linux, base]
+    - role: container-runtime
+      tags: [docker, container-runtime]
+
+  tasks:
+    - name: Create platform user
+      user:
+        name: "{{ platform_user }}"
+        groups: docker
+        shell: /bin/bash
+        create_home: true
+      tags: [users]
+
+    - name: Create platform directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ platform_user }}"
+        mode: "0755"
+      loop:
+        - "{{ platform_home }}"
+        - "{{ platform_home }}/monitor"
+        - "{{ platform_home }}/logs"
+        - /var/log/platform
+      tags: [dirs]
+
+    - name: Set CPU frequency governor to performance
+      shell: |
+        for cpu in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do
+          echo "{{ cpu_governor }}" > "$cpu"
+        done
+      changed_when: true
+      tags: [tuning]
+
+    - name: Disable NUMA automatic balancing
+      sysctl:
+        name: kernel.numa_balancing
+        value: "{{ numa_balancing }}"
+        state: present
+        sysctl_set: true
+        reload: true
+      tags: [tuning, numa]
+
+    - name: Set network interface ring buffer (via ethtool)
+      shell: |
+        for iface in $(ls /sys/class/net/ | grep -v lo); do
+          ethtool -G "$iface" rx 4096 tx 4096 2>/dev/null || true
+        done
+      changed_when: false
+      tags: [network, tuning]
+
+    - name: Configure IRQ affinity for PCIe NICs
+      script: scripts/set_irq_affinity.sh
+      tags: [irq, tuning]
+
+    - name: Deploy platform monitor scripts
+      copy:
+        src: "{{ item.src }}"
+        dest: "{{ platform_home }}/{{ item.dest }}"
+        owner: "{{ platform_user }}"
+        mode: "0755"
+      loop:
+        - { src: "../monitor/sysperf.py", dest: "monitor/sysperf.py" }
+        - { src: "../monitor/netdiag.py", dest: "monitor/netdiag.py" }
+      tags: [deploy]
+
+    - name: Install systemd unit for platform monitor
+      template:
+        src: templates/platform-monitor.service.j2
+        dest: /etc/systemd/system/platform-monitor.service
+        mode: "0644"
+      notify: Reload systemd
+      tags: [systemd]
+
+    - name: Enable platform monitor service
+      systemd:
+        name: platform-monitor
+        enabled: true
+        state: started
+      tags: [systemd]
+
+  handlers:
+    - name: Reload systemd
+      systemd:
+        daemon_reload: true

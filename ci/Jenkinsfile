@@ -1,0 +1,188 @@
+// Wireless prototype platform CI/CD pipeline.
+// Stages: lint -> test -> build RPMs -> build containers -> deploy to lab.
+// Runs on prototype_nodes agent. Artifacts published to internal Artifactory.
+
+pipeline {
+    agent {
+        kubernetes {
+            label 'wireless-devops'
+            yaml '''
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: python
+    image: python:3.11-slim
+    command: [cat]
+    tty: true
+    resources:
+      requests:
+        cpu: "500m"
+        memory: "512Mi"
+  - name: docker
+    image: docker:24-dind
+    securityContext:
+      privileged: true
+    env:
+    - name: DOCKER_TLS_CERTDIR
+      value: ""
+  - name: ansible
+    image: cytopia/ansible:2.15
+    command: [cat]
+    tty: true
+'''
+        }
+    }
+
+    options {
+        timeout(time: 45, unit: 'MINUTES')
+        buildDiscarder(logRotator(numToKeepStr: '20'))
+        disableConcurrentBuilds()
+        timestamps()
+    }
+
+    parameters {
+        booleanParam(name: 'DEPLOY_TO_LAB',   defaultValue: false, description: 'Deploy to lab nodes after build')
+        booleanParam(name: 'BUILD_RPMS',       defaultValue: true,  description: 'Build RPM packages')
+        string(name:  'TARGET_NODES',          defaultValue: 'lab-node-01,lab-node-02', description: 'Comma-separated target nodes')
+        string(name:  'KERNEL_VERSION',        defaultValue: '6.1.80-rt27', description: 'Kernel version tag for RPM')
+    }
+
+    environment {
+        ARTIFACTORY_URL   = credentials('artifactory-url')
+        ARTIFACTORY_CREDS = credentials('artifactory-creds')
+        DOCKER_REGISTRY   = "registry.internal.qcom.com/wireless-platform"
+        PYTHON_ENV        = "venv"
+    }
+
+    stages {
+        stage('Lint') {
+            steps {
+                container('python') {
+                    sh '''
+                        python -m venv ${PYTHON_ENV}
+                        . ${PYTHON_ENV}/bin/activate
+                        pip install -q flake8 pylint psutil
+                        flake8 monitor/ packages/ --max-line-length=100 --statistics
+                        pylint monitor/sysperf.py monitor/netdiag.py packages/build_rpm.py \
+                            --disable=C0114,C0115,C0116 --exit-zero
+                    '''
+                }
+            }
+        }
+
+        stage('Unit Tests') {
+            steps {
+                container('python') {
+                    sh '''
+                        . ${PYTHON_ENV}/bin/activate
+                        pip install -q pytest pytest-cov psutil
+                        pytest tests/ -v \
+                            --cov=monitor \
+                            --cov=packages \
+                            --cov-report=xml:coverage.xml \
+                            --cov-report=term-missing \
+                            --junit-xml=test-results.xml
+                    '''
+                }
+            }
+            post {
+                always {
+                    junit 'test-results.xml'
+                    publishCoverage adapters: [coberturaAdapter('coverage.xml')]
+                }
+            }
+        }
+
+        stage('Build RPMs') {
+            when {
+                expression { params.BUILD_RPMS }
+            }
+            steps {
+                container('python') {
+                    sh '''
+                        . ${PYTHON_ENV}/bin/activate
+                        mkdir -p dist/rpms
+                        python packages/build_rpm.py kernel-spec \
+                            --kernel-version "${KERNEL_VERSION}" \
+                            --output dist/kernel-image.spec
+                        echo "Kernel spec generated: dist/kernel-image.spec"
+                    '''
+                }
+            }
+            post {
+                success {
+                    archiveArtifacts artifacts: 'dist/**/*.spec', fingerprint: true
+                }
+            }
+        }
+
+        stage('Build Container Image') {
+            steps {
+                container('docker') {
+                    sh '''
+                        docker build \
+                            -f containers/Dockerfile.rt \
+                            -t ${DOCKER_REGISTRY}/platform-monitor:${GIT_COMMIT} \
+                            -t ${DOCKER_REGISTRY}/platform-monitor:latest \
+                            .
+                        docker build \
+                            -f containers/Dockerfile.dev \
+                            -t ${DOCKER_REGISTRY}/platform-dev:${GIT_COMMIT} \
+                            .
+                    '''
+                }
+            }
+        }
+
+        stage('Push Container Image') {
+            when {
+                anyOf {
+                    branch 'main'
+                    branch 'release/*'
+                }
+            }
+            steps {
+                container('docker') {
+                    sh '''
+                        echo "${ARTIFACTORY_CREDS_PSW}" | \
+                            docker login ${DOCKER_REGISTRY} \
+                            -u "${ARTIFACTORY_CREDS_USR}" --password-stdin
+                        docker push ${DOCKER_REGISTRY}/platform-monitor:${GIT_COMMIT}
+                        docker push ${DOCKER_REGISTRY}/platform-monitor:latest
+                    '''
+                }
+            }
+        }
+
+        stage('Deploy to Lab') {
+            when {
+                expression { params.DEPLOY_TO_LAB }
+            }
+            steps {
+                container('ansible') {
+                    sh '''
+                        ansible-playbook \
+                            -i ansible/inventory/hosts.ini \
+                            ansible/provision.yml \
+                            --limit "${TARGET_NODES}" \
+                            --tags deploy \
+                            -e "platform_image_tag=${GIT_COMMIT}" \
+                            -v
+                    '''
+                }
+            }
+        }
+    }
+
+    post {
+        failure {
+            echo "Pipeline failed on branch ${GIT_BRANCH} — commit ${GIT_COMMIT}"
+        }
+        cleanup {
+            container('docker') {
+                sh 'docker system prune -f || true'
+            }
+        }
+    }
+}

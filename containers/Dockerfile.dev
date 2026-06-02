@@ -1,0 +1,48 @@
+# Development environment for wireless prototype platform engineers.
+# Includes kernel build toolchain, PCIe debug utilities, and network
+# diagnostic tools. NOT for runtime deployment — use Dockerfile.rt.
+
+FROM registry.access.redhat.com/ubi9/ubi:latest AS base
+
+RUN dnf install -y \
+    gcc \
+    gcc-c++ \
+    make \
+    cmake \
+    kernel-devel \
+    kernel-headers \
+    rpm-build \
+    createrepo_c \
+    git \
+    python3 \
+    python3-pip \
+    python3-devel \
+    ethtool \
+    iproute \
+    net-tools \
+    bridge-utils \
+    pciutils \
+    numactl \
+    numactl-devel \
+    hwloc \
+    perf \
+    strace \
+    gdb \
+    valgrind \
+    && dnf clean all
+
+RUN pip3 install --no-cache-dir psutil pytest
+
+FROM base AS dev
+WORKDIR /workspace
+COPY requirements-dev.txt* ./
+RUN test -f requirements-dev.txt && pip3 install -r requirements-dev.txt || true
+
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
+LABEL maintainer="Gerard Recinto <gerardrecinto@example.com>"
+LABEL description="Wireless prototype platform dev environment"
+LABEL kernel_build="true"
+
+CMD ["/bin/bash"]

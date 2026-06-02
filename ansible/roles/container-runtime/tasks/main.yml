@@ -1,0 +1,114 @@
+---
+- name: Add Docker CE repo
+  get_url:
+    url: https://download.docker.com/linux/centos/docker-ce.repo
+    dest: /etc/yum.repos.d/docker-ce.repo
+    mode: "0644"
+
+- name: Install Docker CE
+  dnf:
+    name:
+      - "docker-ce-{{ docker_ce_version }}"
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+    state: present
+
+- name: Configure Docker daemon for prototype environment
+  copy:
+    dest: /etc/docker/daemon.json
+    content: |
+      {
+        "log-driver": "json-file",
+        "log-opts": {
+          "max-size": "100m",
+          "max-file": "5"
+        },
+        "storage-driver": "overlay2",
+        "default-ulimits": {
+          "nofile": { "Hard": 65536, "Name": "nofile", "Soft": 65536 }
+        },
+        "bridge": "docker0",
+        "ip-forward": true,
+        "iptables": true
+      }
+    mode: "0644"
+  notify: Restart Docker
+
+- name: Start and enable Docker
+  systemd:
+    name: docker
+    enabled: true
+    state: started
+
+- name: Add platform user to docker group
+  user:
+    name: "{{ platform_user }}"
+    groups: docker
+    append: true
+
+- name: Add Kubernetes repo
+  copy:
+    dest: /etc/yum.repos.d/kubernetes.repo
+    content: |
+      [kubernetes]
+      name=Kubernetes
+      baseurl=https://pkgs.k8s.io/core:/stable:/v{{ k8s_version }}/rpm/
+      enabled=1
+      gpgcheck=1
+      gpgkey=https://pkgs.k8s.io/core:/stable:/v{{ k8s_version }}/rpm/repodata/repomd.xml.key
+    mode: "0644"
+
+- name: Install kubectl + kubelet + kubeadm
+  dnf:
+    name:
+      - kubelet
+      - kubeadm
+      - kubectl
+    state: present
+    disable_excludes: kubernetes
+
+- name: Enable kubelet
+  systemd:
+    name: kubelet
+    enabled: true
+
+- name: Disable swap (required by Kubernetes)
+  shell: |
+    swapoff -a
+    sed -i '/swap/d' /etc/fstab
+  changed_when: true
+
+- name: Load kernel modules for k8s networking
+  modprobe:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - overlay
+    - br_netfilter
+
+- name: Persist kernel modules
+  copy:
+    dest: /etc/modules-load.d/k8s.conf
+    content: |
+      overlay
+      br_netfilter
+    mode: "0644"
+
+- name: Set bridge-nf sysctl for k8s
+  sysctl:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    state: present
+    sysctl_set: true
+  loop:
+    - { name: net.bridge.bridge-nf-call-iptables,  value: "1" }
+    - { name: net.bridge.bridge-nf-call-ip6tables, value: "1" }
+    - { name: net.ipv4.ip_forward,                 value: "1" }
+
+handlers:
+  - name: Restart Docker
+    systemd:
+      name: docker
+      state: restarted

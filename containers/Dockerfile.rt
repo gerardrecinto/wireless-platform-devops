@@ -1,0 +1,34 @@
+# Minimal runtime image for wireless prototype platform deployment.
+# Stripped to essential libraries only — no build toolchain.
+# Designed for rapid deploy/teardown cycles on lab nodes.
+
+FROM registry.access.redhat.com/ubi9/ubi-minimal:latest AS runtime
+
+RUN microdnf install -y \
+    python3 \
+    python3-pip \
+    ethtool \
+    iproute \
+    bridge-utils \
+    pciutils \
+    numactl \
+    && microdnf clean all
+
+RUN pip3 install --no-cache-dir psutil
+
+WORKDIR /opt/platform
+
+COPY monitor/ ./monitor/
+COPY scripts/ ./scripts/
+
+RUN python3 -m py_compile monitor/sysperf.py monitor/netdiag.py
+
+ENV PYTHONUNBUFFERED=1
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+    CMD python3 monitor/sysperf.py -n 1 > /dev/null || exit 1
+
+LABEL maintainer="Gerard Recinto <gerardrecinto@example.com>"
+LABEL description="Wireless prototype platform runtime — monitoring only"
+
+CMD ["python3", "monitor/sysperf.py", "--interval", "5"]

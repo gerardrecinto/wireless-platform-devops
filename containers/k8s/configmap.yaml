@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: platform-monitor-config
+  namespace: wireless-prototype
+data:
+  sysperf.interval: "5"
+  sysperf.imbalance_threshold: "30"
+  netdiag.watch_interval: "10"
+  alert.cpu_imbalance_pct: "30"
+  alert.drop_threshold: "1000"
+  alert.error_threshold: "1"

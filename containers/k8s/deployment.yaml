@@ -1,0 +1,105 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: platform-monitor
+  namespace: wireless-prototype
+  labels:
+    app: platform-monitor
+    component: monitoring
+    team: wireless-devops
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: platform-monitor
+  template:
+    metadata:
+      labels:
+        app: platform-monitor
+        component: monitoring
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      # pin to nodes with PCIe radio hardware
+      nodeSelector:
+        hardware.qualcomm.com/pcie-radio: "true"
+
+      # host networking required for bridge and physical NIC visibility
+      hostNetwork: true
+      hostPID: true
+
+      tolerations:
+        - key: "hardware.qualcomm.com/prototype"
+          operator: "Exists"
+          effect: "NoSchedule"
+
+      containers:
+        - name: sysperf-monitor
+          image: wireless-platform-monitor:latest
+          imagePullPolicy: IfNotPresent
+          command: ["python3", "monitor/sysperf.py"]
+          args: ["--interval", "5", "--json"]
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "64Mi"
+            limits:
+              cpu: "250m"
+              memory: "128Mi"
+          securityContext:
+            # /proc/interrupts and /sys/class/net require this
+            privileged: false
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              add: ["NET_ADMIN", "SYS_PTRACE"]
+          volumeMounts:
+            - name: proc
+              mountPath: /proc
+              readOnly: true
+            - name: sys
+              mountPath: /sys
+              readOnly: true
+          livenessProbe:
+            exec:
+              command: ["python3", "monitor/sysperf.py", "-n", "1"]
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            failureThreshold: 3
+
+        - name: netdiag-monitor
+          image: wireless-platform-monitor:latest
+          imagePullPolicy: IfNotPresent
+          command: ["python3", "monitor/netdiag.py"]
+          args: ["--watch", "10"]
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "32Mi"
+            limits:
+              cpu: "100m"
+              memory: "64Mi"
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              add: ["NET_ADMIN"]
+          volumeMounts:
+            - name: proc
+              mountPath: /proc
+              readOnly: true
+            - name: sys
+              mountPath: /sys
+              readOnly: true
+
+      volumes:
+        - name: proc
+          hostPath:
+            path: /proc
+        - name: sys
+          hostPath:
+            path: /sys
+
+      restartPolicy: Always
