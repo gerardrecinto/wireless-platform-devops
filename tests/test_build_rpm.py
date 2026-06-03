@@ -1,4 +1,4 @@
-"""Tests for packages/build_rpm.py — spec generation logic."""
+"""Tests for packages/build_rpm.py: spec generation logic."""
 
 import sys
 from pathlib import Path

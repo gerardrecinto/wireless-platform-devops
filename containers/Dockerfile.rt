@@ -1,5 +1,5 @@
 # Minimal runtime image for wireless prototype platform deployment.
-# Stripped to essential libraries only — no build toolchain.
+# Stripped to essential libraries only, with no build toolchain.
 # Designed for rapid deploy/teardown cycles on lab nodes.
 
 FROM registry.access.redhat.com/ubi9/ubi-minimal:latest AS runtime
@@ -29,6 +29,6 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
     CMD python3 monitor/sysperf.py -n 1 > /dev/null || exit 1
 
 LABEL maintainer="Gerard Recinto <gerardrecinto@example.com>"
-LABEL description="Wireless prototype platform runtime — monitoring only"
+LABEL description="Wireless prototype platform runtime, monitoring only"
 
 CMD ["python3", "monitor/sysperf.py", "--interval", "5"]

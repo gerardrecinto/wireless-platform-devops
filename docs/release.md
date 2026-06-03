@@ -19,7 +19,7 @@ vendor artifacts.
 1. Run unit tests in the project venv.
 2. Generate kernel and driver RPM specs for the target kernel.
 3. Build RPMs on a RHEL-like builder with `rpmbuild`.
-4. Publish RPMs to the internal YUM repository.
+4. Publish RPMs to the configured package repository.
 5. Build and tag diagnostic/runtime container images.
 6. Apply Kubernetes manifests to the target prototype namespace.
 7. Confirm node state with `sysperf.py` and `netdiag.py`.

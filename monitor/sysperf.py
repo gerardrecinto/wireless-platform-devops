@@ -2,7 +2,7 @@
 """
 Linux multi-core performance monitor for wireless prototype platforms.
 Tracks per-core utilization, IRQ distribution, memory pressure,
-and NUMA topology — used to diagnose workload imbalance on PCIe-attached
+and NUMA topology, used to diagnose workload imbalance on PCIe-attached
 radio hardware where CPU affinity misconfig causes latency spikes.
 """
 

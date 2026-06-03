@@ -2,7 +2,7 @@
 """
 Network diagnostics for Linux prototype wireless systems.
 Reads bridge state, routing table, PCIe NIC counters, and interface errors
-directly from /proc and /sys — no external tools required except for
+directly from /proc and /sys, with no external tools required except for
 optional ethtool integration for driver-level stats.
 """
 

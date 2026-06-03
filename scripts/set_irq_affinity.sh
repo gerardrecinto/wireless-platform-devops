@@ -54,7 +54,7 @@ while IFS= read -r iface; do
 done < <(ls /sys/class/net/)
 
 if [[ ${#NIC_IRQS[@]} -eq 0 ]]; then
-    log "No PCIe NIC IRQs found — checking all network-related IRQs"
+    log "No PCIe NIC IRQs found; checking all network-related IRQs"
     # Fall back: pin all IRQs with "eth" or "enp" in name
     while IFS= read -r irq; do
         name_file="/proc/irq/${irq}/actions"

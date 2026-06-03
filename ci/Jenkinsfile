@@ -1,6 +1,6 @@
 // Wireless prototype platform CI/CD pipeline.
 // Stages: lint -> test -> build RPMs -> build containers -> deploy to lab.
-// Runs on prototype_nodes agent. Artifacts published to internal Artifactory.
+// Runs on a prototype_nodes agent. Artifacts publish to a configured package registry.
 
 pipeline {
     agent {
@@ -49,9 +49,7 @@ spec:
     }
 
     environment {
-        ARTIFACTORY_URL   = credentials('artifactory-url')
-        ARTIFACTORY_CREDS = credentials('artifactory-creds')
-        DOCKER_REGISTRY   = "registry.internal.qcom.com/wireless-platform"
+        DOCKER_REGISTRY    = "registry.example.com/wireless-platform"
         PYTHON_ENV        = "venv"
     }
 
@@ -145,9 +143,7 @@ spec:
             steps {
                 container('docker') {
                     sh '''
-                        echo "${ARTIFACTORY_CREDS_PSW}" | \
-                            docker login ${DOCKER_REGISTRY} \
-                            -u "${ARTIFACTORY_CREDS_USR}" --password-stdin
+                        # Registry authentication is configured on the CI agent.
                         docker push ${DOCKER_REGISTRY}/platform-monitor:${GIT_COMMIT}
                         docker push ${DOCKER_REGISTRY}/platform-monitor:latest
                     '''
@@ -177,7 +173,7 @@ spec:
 
     post {
         failure {
-            echo "Pipeline failed on branch ${GIT_BRANCH} — commit ${GIT_COMMIT}"
+            echo "Pipeline failed on branch ${GIT_BRANCH}: commit ${GIT_COMMIT}"
         }
         cleanup {
             container('docker') {

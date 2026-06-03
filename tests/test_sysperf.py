@@ -1,4 +1,4 @@
-"""Tests for monitor/sysperf.py — run without real /proc by patching reads."""
+"""Tests for monitor/sysperf.py: run without real /proc by patching reads."""
 
 import sys
 import time

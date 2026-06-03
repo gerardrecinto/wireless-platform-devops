@@ -1,6 +1,6 @@
 # Development environment for wireless prototype platform engineers.
 # Includes kernel build toolchain, PCIe debug utilities, and network
-# diagnostic tools. NOT for runtime deployment — use Dockerfile.rt.
+# diagnostic tools. NOT for runtime deployment; use Dockerfile.rt.
 
 FROM registry.access.redhat.com/ubi9/ubi:latest AS base
 
