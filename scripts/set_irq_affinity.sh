@@ -47,7 +47,7 @@ while IFS= read -r iface; do
         hint_file="${irq_dir}/affinity_hint"
         [[ ! -f "$hint_file" ]] && continue
         if grep -qr "${pci_addr}" "${irq_dir}/" 2>/dev/null || \
-           ls "/sys/kernel/irq/${irq}/actions" 2>/dev/null | grep -q "$iface"; then
+           grep -q "$iface" "/sys/kernel/irq/${irq}/actions" 2>/dev/null; then
             NIC_IRQS+=("$irq")
         fi
     done < <(find /proc/irq -mindepth 1 -maxdepth 1 -type d 2>/dev/null)
