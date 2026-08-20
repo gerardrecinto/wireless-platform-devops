@@ -216,14 +216,19 @@ def format_snapshot(snap: SampleSnapshot) -> str:
 
 
 def main() -> None:
+    default_interval = float(os.environ.get("SYSPERF_INTERVAL", "2.0"))
+    default_imbalance = float(os.environ.get("SYSPERF_IMBALANCE_THRESHOLD", "30.0"))
+
     parser = argparse.ArgumentParser(
         description="Linux multi-core performance monitor for wireless prototype platforms"
     )
-    parser.add_argument("-i", "--interval", type=float, default=2.0)
+    parser.add_argument("-i", "--interval", type=float, default=default_interval,
+                        help="seconds between samples (env: SYSPERF_INTERVAL)")
     parser.add_argument("-n", "--count", type=int, default=0, help="0=infinite")
     parser.add_argument("--json", action="store_true")
-    parser.add_argument("--imbalance-threshold", type=float, default=30.0,
-                        help="CPU imbalance alert threshold %%")
+    parser.add_argument("--imbalance-threshold", type=float, default=default_imbalance,
+                        help="CPU imbalance alert threshold %% "
+                             "(env: SYSPERF_IMBALANCE_THRESHOLD)")
     args = parser.parse_args()
 
     psutil.cpu_percent(percpu=True, interval=None)
