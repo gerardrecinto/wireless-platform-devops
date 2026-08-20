@@ -215,23 +215,25 @@ def _get_ethtool_speed(iface: str) -> str:
         return ""
 
 
-def check_error_spikes(report: NetReport) -> list[str]:
+def check_error_spikes(report: NetReport, error_threshold: int = 1,
+                        drop_threshold: int = 1000) -> list[str]:
     warnings = []
     for iface in report.interfaces:
         if iface.name == "lo":
             continue
-        if iface.rx_errors + iface.tx_errors > 0:
+        if iface.rx_errors + iface.tx_errors >= error_threshold:
             warnings.append(
                 f"{iface.name}: errors rx={iface.rx_errors} tx={iface.tx_errors}"
             )
-        if iface.rx_dropped + iface.tx_dropped > 1000:
+        if iface.rx_dropped + iface.tx_dropped > drop_threshold:
             warnings.append(
                 f"{iface.name}: drops rx={iface.rx_dropped} tx={iface.tx_dropped}"
             )
     return warnings
 
 
-def format_report(r: NetReport) -> str:
+def format_report(r: NetReport, error_threshold: int = 1,
+                   drop_threshold: int = 1000) -> str:
     lines = [f"=== netdiag {time.strftime('%H:%M:%S', time.localtime(r.timestamp))} ===", ""]
 
     lines.append(f"{'Interface':<16} {'State':<8} {'MTU':>5} {'Driver':<16}"
@@ -244,8 +246,8 @@ def format_report(r: NetReport) -> str:
         tx_mb = i.tx_bytes / 1e6
         err = i.rx_errors + i.tx_errors
         drop = i.rx_dropped + i.tx_dropped
-        err_flag = " !" if err > 0 else ""
-        drop_flag = " !" if drop > 1000 else ""
+        err_flag = " !" if err >= error_threshold else ""
+        drop_flag = " !" if drop > drop_threshold else ""
         lines.append(f"{i.name:<16} {i.state:<8} {i.mtu:>5} {i.driver:<16}"
                      f"  {rx_mb:>8.1f}  {tx_mb:>8.1f}  {err:>5}{err_flag}  {drop:>6}{drop_flag}")
 
@@ -272,7 +274,7 @@ def format_report(r: NetReport) -> str:
                          f"vendor={nic.vendor_id}  dev={nic.device_id}  "
                          f"driver={nic.driver}  {speed}")
 
-    warnings = check_error_spikes(r)
+    warnings = check_error_spikes(r, error_threshold, drop_threshold)
     if warnings:
         lines += ["", "WARNINGS:"]
         for w in warnings:
@@ -282,12 +284,24 @@ def format_report(r: NetReport) -> str:
 
 
 def main() -> None:
+    default_watch = os.environ.get("NETDIAG_WATCH")
+    default_watch = float(default_watch) if default_watch else None
+    default_error_threshold = int(os.environ.get("NETDIAG_ERROR_THRESHOLD", "1"))
+    default_drop_threshold = int(os.environ.get("NETDIAG_DROP_THRESHOLD", "1000"))
+
     parser = argparse.ArgumentParser(
         description="Network diagnostics for Linux prototype wireless systems"
     )
     parser.add_argument("--json", action="store_true")
-    parser.add_argument("--watch", type=float, metavar="INTERVAL",
-                        help="Continuous watch mode, seconds between polls")
+    parser.add_argument("--watch", type=float, metavar="INTERVAL", default=default_watch,
+                        help="Continuous watch mode, seconds between polls "
+                             "(env: NETDIAG_WATCH)")
+    parser.add_argument("--error-threshold", type=int, default=default_error_threshold,
+                        help="rx+tx error count that triggers a warning "
+                             "(env: NETDIAG_ERROR_THRESHOLD)")
+    parser.add_argument("--drop-threshold", type=int, default=default_drop_threshold,
+                        help="rx+tx dropped packet count that triggers a warning "
+                             "(env: NETDIAG_DROP_THRESHOLD)")
     args = parser.parse_args()
 
     while True:
@@ -301,7 +315,7 @@ def main() -> None:
         if args.json:
             print(json.dumps(asdict(report), indent=2))
         else:
-            print(format_report(report))
+            print(format_report(report, args.error_threshold, args.drop_threshold))
 
         if not args.watch:
             break
