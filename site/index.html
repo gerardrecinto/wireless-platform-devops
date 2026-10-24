@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>wireless-platform-devops: Linux toolkit for radio hosts</title>
+<meta name="description" content="Feed the real sysperf, netdiag and RPM spec code with numbers you type and see imbalance warnings, NIC error warnings and generated spec files, in your browser.">
+<meta property="og:title" content="wireless-platform-devops">
+<meta property="og:description" content="Feed the real sysperf, netdiag and RPM spec code with numbers you type and see imbalance warnings, NIC error warnings and generated spec files, in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2306b6d4'/%3E%3Ccircle cx='16' cy='16' r='6' fill='none' stroke='%23fff' stroke-width='3'/%3E%3C/svg%3E">
+<style>
+
+:root{--bg:#f8fafc;--panel:#fff;--panel2:#f1f5f9;--line:#e2e8f0;--fg:#0f172a;--mute:#475569;--brand:#0e7490;--brand-bg:#cffafe;--ok:#047857;--ok-bg:#d1fae5;--err:#b91c1c;--err-bg:#fee2e2;--code:#0b1220;--code-fg:#e2e8f0}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#070d1a;--panel:#0d1526;--panel2:#111c33;--line:#1e2b47;--fg:#e8eefc;--mute:#9fb0cc;--brand:#22d3ee;--brand-bg:#08333d;--ok:#34d399;--ok-bg:#06382b;--err:#fca5a5;--err-bg:#3b1212}}
+:root[data-theme=dark]{--bg:#070d1a;--panel:#0d1526;--panel2:#111c33;--line:#1e2b47;--fg:#e8eefc;--mute:#9fb0cc;--brand:#22d3ee;--brand-bg:#08333d;--ok:#34d399;--ok-bg:#06382b;--err:#fca5a5;--err-bg:#3b1212}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--brand)}
+code,pre,textarea,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.wrap{max-width:1080px;margin:0 auto;padding:0 16px}
+nav{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+nav .wrap{display:flex;align-items:center;justify-content:space-between;height:56px;gap:12px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:700;color:var(--fg);text-decoration:none}
+.logo i{width:22px;height:22px;border-radius:6px;background:#06b6d4;display:inline-block}
+nav .links{display:flex;gap:18px;align-items:center;font-size:14px}
+nav .links a{color:var(--mute);text-decoration:none}
+nav .links a:hover{color:var(--fg)}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:10px;font-weight:600;text-decoration:none;border:1px solid var(--line);color:var(--fg);background:var(--panel);cursor:pointer;font-size:15px}
+.btn.primary{background:#06b6d4;border-color:#06b6d4;color:#032a33}
+.btn.primary:hover{background:#22d3ee}
+.btn:focus-visible,textarea:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid #06b6d4;outline-offset:2px}
+.hero{padding:72px 0 40px;text-align:center}
+.pill{display:inline-block;font-size:13px;color:var(--brand);background:var(--brand-bg);padding:4px 12px;border-radius:99px;margin-bottom:20px;font-weight:600}
+h1{font-size:clamp(34px,6vw,58px);line-height:1.08;margin:0 0 18px;letter-spacing:-.02em}
+h1 em{font-style:normal;color:var(--brand)}
+.lede{max-width:700px;margin:0 auto 28px;color:var(--mute);font-size:18px}
+.cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.stats{display:flex;gap:28px;justify-content:center;flex-wrap:wrap;margin-top:36px;color:var(--mute);font-size:14px}
+.stats b{display:block;color:var(--fg);font-size:22px}
+section{padding:56px 0}
+h2{font-size:clamp(26px,4vw,36px);margin:0 0 8px;letter-spacing:-.01em}
+.sub{color:var(--mute);margin:0 0 28px;max-width:720px}
+.lab{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+@media (max-width:860px){.lab{grid-template-columns:minmax(0,1fr)}nav .links .hide-s{display:none}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;min-width:0}
+.card h3{margin:0;padding:12px 16px;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.tools{display:flex;gap:6px;flex-wrap:wrap}
+.chip{font:600 12px system-ui;padding:5px 10px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--fg);cursor:pointer;text-transform:none;letter-spacing:0}
+.chip[aria-pressed=true]{background:var(--brand-bg);border-color:var(--brand);color:var(--brand)}
+#log{display:block;width:100%;height:420px;border:0;padding:12px 14px;font-size:12.5px;line-height:1.55;background:var(--code);color:var(--code-fg);resize:vertical;white-space:pre;overflow:auto}
+.src{display:flex;gap:8px;align-items:center;padding:10px 14px;border-top:1px solid var(--line);font-size:13px;color:var(--mute);flex-wrap:wrap}
+.out{min-height:420px}
+.status{padding:16px;color:var(--mute);font-size:14px}
+.verdict{padding:18px 16px;border-bottom:1px solid var(--line);background:var(--err-bg)}
+.verdict.unknown{background:var(--panel2)}
+.verdict b{display:block;font-size:20px;text-transform:uppercase;letter-spacing:.04em;color:var(--err)}
+.verdict.unknown b{color:var(--mute)}
+.verdict span{font-size:14px;color:var(--mute)}
+.sec{padding:14px 16px;border-bottom:1px solid var(--line)}
+.sec:last-child{border-bottom:0}
+.sec h4{margin:0 0 8px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
+.bar{height:10px;border-radius:99px;background:var(--panel2);overflow:hidden;max-width:260px;display:inline-block;vertical-align:middle;margin-right:10px;width:60%}
+.bar i{display:block;height:100%;background:#06b6d4}
+.site{padding:8px 0;border-bottom:1px dashed var(--line);font-size:13.5px}
+.site:last-child{border:0}
+.site code{background:var(--panel2);padding:1px 6px;border-radius:5px;font-size:12px}
+.fix{background:var(--ok-bg);color:var(--ok);padding:10px 12px;border-radius:8px;font-size:14px}
+.note{font-size:13px;color:var(--mute);margin-top:12px}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media (max-width:860px){.steps{grid-template-columns:minmax(0,1fr)}}
+.step{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px}
+.step .n{width:28px;height:28px;border-radius:8px;background:var(--brand-bg);color:var(--brand);display:grid;place-items:center;font-weight:700;margin-bottom:10px}
+.step h3{margin:0 0 6px;font-size:17px}
+.step p{margin:0;color:var(--mute);font-size:15px}
+.tw{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow-x:auto;max-width:100%}
+table{width:100%;min-width:560px;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);background:var(--panel2)}
+tr:last-child td{border-bottom:0}
+td:first-child{font-family:ui-monospace,monospace;font-weight:700;white-space:nowrap}
+.install pre{background:var(--code);color:var(--code-fg);padding:16px;border-radius:12px;overflow-x:auto;font-size:13.5px;margin:0 0 12px}
+.cols2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+@media (max-width:860px){.cols2{grid-template-columns:minmax(0,1fr)}}
+.limits{background:var(--panel);border:1px solid var(--line);border-left:4px solid #f59e0b;border-radius:10px;padding:16px 20px}
+.limits ul{margin:8px 0 0;padding-left:20px;color:var(--mute)}
+footer{border-top:1px solid var(--line);padding:32px 0;color:var(--mute);font-size:14px}
+footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.panel[hidden]{display:none}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+@media (max-width:860px){.grid2{grid-template-columns:minmax(0,1fr)}}
+.tw table{min-width:300px}
+.tw input,.ctl input,.ctl select{background:var(--code);color:var(--code-fg);border:1px solid var(--line);border-radius:6px;padding:5px 8px;font:12.5px ui-monospace,monospace;width:100%;min-width:60px}
+.ctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;padding:14px}
+.ctl label{display:block;font-size:12px;color:var(--mute);margin-bottom:4px}
+pre.raw{margin:0;padding:12px 16px;font-size:12px;line-height:1.55;white-space:pre;overflow:auto;max-height:340px;background:var(--code);color:var(--code-fg)}
+.warn{padding:10px 14px;border-bottom:1px solid var(--line);font-size:13.5px;display:flex;gap:8px;align-items:baseline}
+.warn b{font:700 11px ui-monospace,monospace;padding:2px 8px;border-radius:6px;background:var(--err-bg);color:var(--err)}
+.okline{padding:12px 14px;color:var(--ok);font-weight:600;font-size:14px}
+.sim{display:inline-block;font:700 11px ui-monospace,monospace;color:var(--brand);background:var(--brand-bg);padding:2px 8px;border-radius:6px;margin-left:8px}
+</style>
+</head>
+<body>
+<nav><div class="wrap">
+  <a class="logo" href="#top"><i></i>wireless-platform-devops</a>
+  <div class="links"><a href="#try" class="hide-s">Try it</a><a href="#install" class="hide-s">Run it</a><a class="btn" href="https://github.com/gerardrecinto/wireless-platform-devops">GitHub</a></div>
+</div></nav>
+
+<header class="hero" id="top"><div class="wrap">
+  <h1>Find the hot core and the bad NIC <em>before</em> the radio does.</h1>
+  <p class="lede">A Linux toolkit for wireless platform prototypes: per-core and IRQ diagnostics, PCIe NIC and bridge checks, RPM spec generation, Ansible provisioning and a Jenkins release flow.</p>
+  <div class="cta"><a class="btn primary" href="#try">Try the diagnostics</a><a class="btn" href="#install">Run it on Linux</a></div>
+  <div class="stats"><div><b>3</b>command-line tools</div><div><b>0</b>hosts read by this page</div><div><b>4</b>delivery tools wired in</div></div>
+</div></header>
+
+
+<section id="try"><div class="wrap">
+  <h2>Run the diagnostics on a made-up host</h2>
+  <p class="sub">These tools read <code>/proc</code> and <code>/sys</code> on a real Linux box, which a browser does not have. So the page feeds the repo's real analysis and formatting functions with numbers you type. The numbers are simulated, and the functions are the real ones.</p>
+  <div class="tabs" role="tablist" aria-label="Tools">
+    <button class="chip" role="tab" data-t="cpu" aria-pressed="true">sysperf: cores and IRQs</button>
+    <button class="chip" role="tab" data-t="net" aria-pressed="false">netdiag: interfaces</button>
+    <button class="chip" role="tab" data-t="rpm" aria-pressed="false">rpm-tooling: spec files</button>
+  </div>
+
+  <div class="panel" id="p-cpu">
+   <div class="grid2">
+    <div class="card"><h3><span>Per-core load <span class="sim">SIMULATED</span></span><span class="tools"><button class="chip" id="c-bal">Balanced</button><button class="chip" id="c-bad">One hot core</button></span></h3>
+      <div class="tw" style="border:0;border-radius:0"><table><thead><tr><th>core</th><th>util %</th><th>IRQs</th></tr></thead><tbody id="cores"></tbody></table></div>
+      <div class="ctl"><div><label for="thr">imbalance threshold (points over mean)</label><input id="thr" type="number" value="30" min="1" max="100"></div></div>
+    </div>
+    <div class="card" id="cpu-out" aria-live="polite"><h3><span>sysperf says</span></h3><div class="status" id="boot">Loading the tools (about 10 MB the first time, cached after)...</div></div>
+   </div>
+  </div>
+
+  <div class="panel" id="p-net" hidden>
+   <div class="grid2">
+    <div class="card"><h3><span>Interfaces <span class="sim">SIMULATED</span></span><span class="tools"><button class="chip" id="n-ok">Healthy</button><button class="chip" id="n-bad">Errors on the radio NIC</button></span></h3>
+      <div class="tw" style="border:0;border-radius:0"><table><thead><tr><th>name</th><th>rx err</th><th>tx err</th><th>rx drop</th><th>tx drop</th></tr></thead><tbody id="nics"></tbody></table></div>
+      <div class="ctl"><div><label for="et">error threshold</label><input id="et" type="number" value="1" min="1"></div><div><label for="dt">drop threshold</label><input id="dt" type="number" value="1000" min="1"></div></div>
+    </div>
+    <div class="card" id="net-out" aria-live="polite"><h3><span>netdiag says</span></h3></div>
+   </div>
+  </div>
+
+  <div class="panel" id="p-rpm" hidden>
+   <div class="grid2">
+    <div class="card"><h3><span>Package</span></h3>
+      <div class="ctl">
+        <div><label for="kind">spec type</label><select id="kind"><option value="kernel">kernel image</option><option value="driver">PCIe driver</option></select></div>
+        <div><label for="kv">kernel version</label><input id="kv" value="6.1.80-rt27"></div>
+        <div id="dn-w"><label for="dn">driver name</label><input id="dn" value="ixgbe"></div>
+        <div id="dv-w"><label for="dv">driver version</label><input id="dv" value="5.20.3"></div>
+      </div>
+      <div class="note" style="padding:0 14px 14px;margin:0">This generates a spec file only. A real RPM build needs a RHEL-like builder.</div>
+    </div>
+    <div class="card" id="rpm-out" aria-live="polite"><h3><span>Generated .spec</span></h3></div>
+   </div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <h2>What is in the repo</h2>
+  <p class="sub">A small toolkit for the work that gets scattered across lab nodes.</p>
+  <div class="steps">
+    <div class="step"><div class="n">1</div><h3>Diagnose</h3><p><code>sysperf</code> watches per-core load, IRQ counts, memory and NUMA. <code>netdiag</code> reads bridges, routes, PCIe NIC counters and interface errors.</p></div>
+    <div class="step"><div class="n">2</div><h3>Package</h3><p><code>rpm-tooling</code> generates spec files for kernel images and PCIe drivers, and can verify RPMs and build YUM repo metadata.</p></div>
+    <div class="step"><div class="n">3</div><h3>Provision and ship</h3><p>Ansible roles set up the base OS and container runtime. A Jenkins pipeline runs lint, tests, specs, images and deploys. Kubernetes manifests run the monitor with host networking.</p></div>
+  </div>
+</div></section>
+
+<section id="install" class="install"><div class="wrap">
+  <h2>Run it on a Linux host</h2>
+  <div class="cols2">
+    <div>
+<pre>python3 -m venv .venv
+. .venv/bin/activate
+pip install -e ".[dev]"
+pytest tests/ -v
+
+sysperf --interval 2 --imbalance-threshold 25
+netdiag --watch 10</pre>
+    </div>
+    <div>
+<pre>rpm-tooling kernel-spec --kernel-version 6.1.80-rt27
+ISOLATED_CPUS=4,5,6,7 sudo bash scripts/set_irq_affinity.sh
+ansible-playbook -i ansible/inventory/hosts.ini ansible/provision.yml</pre>
+      <p class="note">The monitors are Linux-specific by design. They read <code>/proc</code> and <code>/sys</code> directly.</p>
+    </div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <div class="limits">
+    <strong>What this does not do</strong>
+    <ul>
+      <li>It is a toolkit, not a platform product. The repo says so.</li>
+      <li>This page cannot read a host. It runs the real analysis code on values you enter.</li>
+      <li>The 20M daily user figure in the README is a capacity target for design thinking. It is not a load test result.</li>
+      <li>It generates RPM specs. It does not ship built RPMs.</li>
+    </ul>
+  </div>
+</div></section>
+
+
+<footer><div class="wrap">
+  <span>wireless-platform-devops. Built by <a href="https://github.com/gerardrecinto">Gerard Recinto</a>.</span>
+  <span><a href="https://github.com/gerardrecinto/wireless-platform-devops">Source</a> &middot; <a href="https://github.com/gerardrecinto/wireless-platform-devops/releases">Releases</a></span>
+</div></footer>
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+<script>
+
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  let py = null;
+  const track = (n) => { try { if (window.plausible) window.plausible(n); } catch (e) {} };
+  const PY = `
+import json, sys, time, types
+sys.modules.setdefault("psutil", types.ModuleType("psutil"))
+from monitor import sysperf, netdiag
+from packages import build_rpm
+def cpu(cores, thr):
+    snap = sysperf.SampleSnapshot(timestamp=time.time(), cores=[sysperf.CoreStats(i, float(u), 2400.0, int(q)) for i, (u, q) in enumerate(cores)],
+        mem=sysperf.MemStats(64.0, 21.5, 40.2, 0.0, 1200), numa=[sysperf.NumaNode(0, [0, 1, 2, 3], 10.2, 32.0), sysperf.NumaNode(1, [4, 5, 6, 7], 11.3, 32.0)],
+        load_avg=(2.1, 1.8, 1.5), context_switches=48211)
+    return json.dumps({"warn": sysperf.detect_imbalance(snap, float(thr)), "text": sysperf.format_snapshot(snap)})
+def net(rows, et, dt):
+    r = netdiag.NetReport(timestamp=time.time(), interfaces=[netdiag.InterfaceStats(n, "up", 9000 if n != "eth0" else 1500, "ixgbe" if n != "eth0" else "virtio_net", 8_400_000_000, 7_100_000_000, int(a), int(b), int(c), int(d)) for n, a, b, c, d in rows],
+        bridges=[netdiag.BridgeInfo("br0", ["eth0"], "up", True)],
+        routes=[netdiag.RouteEntry("0.0.0.0", "10.0.0.1", "eth0", "UG", 100), netdiag.RouteEntry("10.20.0.0", "0.0.0.0", "ens1f0", "U", 0)],
+        pcie_nics=[netdiag.PcieNic("ens1f0", "0000:5e:00.0", "0x8086", "0x10fb", "10000", "ixgbe", "10GbE")])
+    return json.dumps({"warn": netdiag.check_error_spikes(r, int(et), int(dt)), "text": netdiag.format_report(r, int(et), int(dt))})
+def spec(kind, kv, name, ver):
+    s = build_rpm.create_kernel_image_spec(kv) if kind == "kernel" else build_rpm.create_driver_spec(name, ver, kv)
+    return build_rpm.generate_spec(s)
+`;
+  const CORES = { bal: [[22, 1200], [25, 1100], [19, 1300], [24, 1250], [21, 900], [23, 950], [20, 1000], [26, 1100]], bad: [[22, 1200], [25, 1100], [19, 1300], [97, 480000], [21, 900], [23, 950], [20, 1000], [26, 1100]] };
+  const NICS = { ok: [["eth0", 0, 0, 12, 4], ["ens1f0", 0, 0, 30, 2], ["ens1f1", 0, 0, 8, 0]], bad: [["eth0", 0, 0, 12, 4], ["ens1f0", 412, 7, 18250, 960], ["ens1f1", 0, 0, 8, 0]] };
+  const setCores = (k) => { $("cores").innerHTML = CORES[k].map((c, i) => `<tr><td>${i}</td><td><input type="number" min="0" max="100" value="${c[0]}" data-c="u${i}" aria-label="core ${i} utilization"></td><td><input type="number" min="0" value="${c[1]}" data-c="q${i}" aria-label="core ${i} IRQs"></td></tr>`).join(""); cpu(); };
+  const setNics = (k) => { $("nics").innerHTML = NICS[k].map((n, i) => `<tr><td>${n[0]}</td>${[1, 2, 3, 4].map((j) => `<td><input type="number" min="0" value="${n[j]}" data-n="${i}_${j}" aria-label="${n[0]} column ${j}"></td>`).join("")}</tr>`).join(""); net(); };
+  const call = (code, id, head) => { try { return JSON.parse(py.runPython(code)); } catch (e) { $(id).innerHTML = `<h3><span>${head}</span></h3><div class="status" style="color:var(--err)">${esc(String(e.message || e).trim().split("\n").pop())}</div>`; return null; } };
+  function cpu() {
+    if (!py) return;
+    const cores = [...Array(8).keys()].map((i) => [+document.querySelector(`[data-c=u${i}]`).value || 0, +document.querySelector(`[data-c=q${i}]`).value || 0]);
+    py.globals.set("_c", py.toPy(cores));
+    const r = call(`cpu(_c, ${+$("thr").value || 30})`, "cpu-out", "sysperf says"); if (!r) return;
+    $("cpu-out").innerHTML = `<h3><span>sysperf says</span></h3>${r.warn.length ? r.warn.map((w) => `<div class="warn"><b>IMBALANCE</b>${esc(w)}</div>`).join("") : '<div class="okline">No core is far above the mean.</div>'}<pre class="raw">${esc(r.text)}</pre>`;
+  }
+  function net() {
+    if (!py) return;
+    const rows = NICS.ok.map((n, i) => [n[0], ...[1, 2, 3, 4].map((j) => +document.querySelector(`[data-n="${i}_${j}"]`).value || 0)]);
+    py.globals.set("_n", py.toPy(rows));
+    const r = call(`net(_n, ${+$("et").value || 1}, ${+$("dt").value || 1000})`, "net-out", "netdiag says"); if (!r) return;
+    $("net-out").innerHTML = `<h3><span>netdiag says</span></h3>${r.warn.length ? r.warn.map((w) => `<div class="warn"><b>WARNING</b>${esc(w)}</div>`).join("") : '<div class="okline">No interface over the thresholds.</div>'}<pre class="raw">${esc(r.text)}</pre>`;
+  }
+  function rpm() {
+    if (!py) return;
+    const k = $("kind").value; $("dn-w").hidden = $("dv-w").hidden = k === "kernel";
+    py.globals.set("_a", k); py.globals.set("_b", $("kv").value); py.globals.set("_d", $("dn").value); py.globals.set("_e", $("dv").value);
+    try { $("rpm-out").innerHTML = `<h3><span>Generated .spec</span></h3><pre class="raw">${esc(py.runPython("spec(_a, _b, _d, _e)"))}</pre>`; }
+    catch (e) { $("rpm-out").innerHTML = `<h3><span>Generated .spec</span></h3><div class="status" style="color:var(--err)">${esc(String(e.message || e).trim().split("\n").pop())}</div>`; }
+  }
+  document.querySelectorAll("[data-t]").forEach((b) => b.addEventListener("click", () => { document.querySelectorAll("[data-t]").forEach((x) => x.setAttribute("aria-pressed", x === b)); ["cpu", "net", "rpm"].forEach((k) => ($("p-" + k).hidden = k !== b.dataset.t)); track("wp_tab_" + b.dataset.t); if (b.dataset.t === "rpm") rpm(); }));
+  $("c-bal").addEventListener("click", () => setCores("bal")); $("c-bad").addEventListener("click", () => setCores("bad"));
+  $("n-ok").addEventListener("click", () => setNics("ok")); $("n-bad").addEventListener("click", () => setNics("bad"));
+  $("cores").addEventListener("input", cpu); $("thr").addEventListener("input", cpu);
+  $("nics").addEventListener("input", net); $("et").addEventListener("input", net); $("dt").addEventListener("input", net);
+  ["kind", "kv", "dn", "dv"].forEach((i) => $(i).addEventListener("input", rpm));
+  (async () => {
+    try {
+      py = await loadPyodide();
+      py.FS.mkdirTree("/lib/monitor"); py.FS.mkdirTree("/lib/packages");
+      for (const f of ["monitor/__init__.py", "monitor/sysperf.py", "monitor/netdiag.py", "packages/__init__.py", "packages/build_rpm.py"]) { const r = await fetch("py/" + f); if (!r.ok) throw new Error("could not load " + f); py.FS.writeFile("/lib/" + f, await r.text()); }
+      py.runPython("import sys; sys.path.insert(0, '/lib')"); py.runPython(PY);
+      window.__WP_READY__ = true; setCores("bad"); setNics("bad");
+    } catch (e) { $("boot").textContent = "The in-browser tools did not load (" + String(e.message || e).split("\n").pop() + "). The Linux quickstart below runs the same code."; }
+  })();
+})();
+
+</script>
+</body>
+</html>
