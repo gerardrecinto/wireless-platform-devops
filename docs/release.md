@@ -1,6 +1,6 @@
 # Release And Package Notes
 
-This repo keeps the release path simple enough to inspect during an interview or
+This repo keeps the release path simple enough to inspect during a
 code review. The goal is to show the shape of the platform, not to ship private
 vendor artifacts.
 
