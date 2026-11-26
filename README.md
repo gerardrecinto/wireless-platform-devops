@@ -102,7 +102,7 @@ Provisioning
 
 ## Design Tradeoffs
 
-This is intentionally a toolkit, not a full platform product.
+It is a focused toolkit.
 
 | Choice | Why | Tradeoff |
 |---|---|---|
